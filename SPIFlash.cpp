@@ -10,23 +10,23 @@
 // **********************************************************************************
 // License
 // **********************************************************************************
-// This program is free software; you can redistribute it 
-// and/or modify it under the terms of the GNU General    
-// Public License as published by the Free Software       
-// Foundation; either version 3 of the License, or        
-// (at your option) any later version.                    
-//                                                        
-// This program is distributed in the hope that it will   
-// be useful, but WITHOUT ANY WARRANTY; without even the  
-// implied warranty of MERCHANTABILITY or FITNESS FOR A   
-// PARTICULAR PURPOSE. See the GNU General Public        
-// License for more details.                              
-//                                                        
-// You should have received a copy of the GNU General    
+// This program is free software; you can redistribute it
+// and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software
+// Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will
+// be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A
+// PARTICULAR PURPOSE. See the GNU General Public
+// License for more details.
+//
+// You should have received a copy of the GNU General
 // Public License along with this program.
 // If not, see <http://www.gnu.org/licenses/>.
-//                                                        
-// Licence can be viewed at                               
+//
+// Licence can be viewed at
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
@@ -56,8 +56,10 @@ void SPIFlash::select() {
 #ifndef SPI_HAS_TRANSACTION
   noInterrupts();
 #endif
+#if defined (SPCR) && defined (SPSR)
   _SPCR = SPCR;
   _SPSR = SPSR;
+#endif
 
 #ifdef SPI_HAS_TRANSACTION
   SPI.beginTransaction(_settings);
@@ -77,18 +79,22 @@ void SPIFlash::unselect() {
   //restore SPI settings to what they were before talking to the FLASH chip
 #ifdef SPI_HAS_TRANSACTION
   SPI.endTransaction();
-#else  
+#else
   interrupts();
 #endif
+#if defined (SPCR) && defined (SPSR)
   SPCR = _SPCR;
   SPSR = _SPSR;
+#endif
 }
 
 /// setup SPI, read device ID etc...
 boolean SPIFlash::initialize()
 {
-  _SPCR = SPCR;
-  _SPSR = SPSR;
+  #if defined (SPCR) && defined (SPSR)
+    _SPCR = SPCR;
+    _SPSR = SPSR;
+  #endif
   pinMode(_slaveSelectPin, OUTPUT);
 #ifdef SPI_HAS_TRANSACTION
   _settings = SPISettings(4000000, MSBFIRST, SPI_MODE0);
@@ -96,7 +102,7 @@ boolean SPIFlash::initialize()
 
   unselect();
   wakeup();
-  
+
   if (_jedecID == 0 || readDeviceId() == _jedecID) {
     command(SPIFLASH_STATUSWRITE, true); // Write Status Register
     SPI.transfer(0);                     // Global Unprotect
@@ -236,11 +242,11 @@ void SPIFlash::writeBytes(uint32_t addr, const void* buf, uint16_t len) {
     SPI.transfer(addr >> 16);
     SPI.transfer(addr >> 8);
     SPI.transfer(addr);
-    
+
     for (uint16_t i = 0; i < n; i++)
       SPI.transfer(((uint8_t*) buf)[offset + i]);
     unselect();
-    
+
     addr+=n;  // adjust the addresses and remaining bytes by what we've just transferred.
     offset +=n;
     len -= n;
